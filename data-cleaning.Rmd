@@ -1,0 +1,714 @@
+---
+title: "data-cleaning"
+author: "Katrina Keegan"
+date: "9/16/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(broom)
+library(ggplot2)
+library(GGally)
+library(car)
+library(olsrr)
+library(brms)
+library(nlme)
+library(lme4)
+```
+
+
+
+```{r v_dem}
+#First I'm going to clean the V-Dem data so I know what observations and years I'm working with
+authoritarian_countries = read_csv("V-Dem.csv", col_types = cols(
+  country_name = col_character(),
+  year = col_double(),
+  `V-Dem` = col_double() 
+)) %>%
+  rename(v_dem = `V-Dem`, country = country_name) %>%
+  filter(year %in% c(2008, 2010, 2012, 2014, 2016, 2018, 2020)) %>%
+  filter(v_dem < 0.42) %>%
+  select(country, year) %>%
+  #Adding mutations for name differences if found when joining with other datasets
+  mutate(country = replace(country, country == "Burma/Myanmar", "Myanmar")) %>%
+  mutate(country = replace(country, country == "Republic of the Congo", "Republic of Congo")) %>%
+  mutate(country = replace(country, country == "The Gambia", "Gambia")) %>%
+  mutate(country = replace(country, country == "Guinea-Bissau", "Guinea Bissau"))
+```
+
+```{r cpi}
+#CPI data is available for each year and needs to be combined
+#It appears that the score before 2014 needs to be multiplied by 10
+#Safer to use rank in regression
+cpi2007 = read_csv("CPI/CPI-2007.csv", col_types = cols(
+  country = col_character(),
+  iso = col_character(),
+  region = col_character(),
+  score = col_double(),
+  rank = col_double(),
+  interval = col_character()
+)) %>%
+  select(country, score, rank) %>%
+  mutate(year = 2007) %>%
+  mutate(score = score*10) %>%
+  mutate(country = replace(country, country == "Guinea Bissau", "Guinea-Bissau")) %>%
+  mutate(country = replace(country, country == "Kuweit", "Kuwait")) %>%
+  mutate(country = replace(country, country == "Viet Nam", "Vietnam")) %>%
+  mutate(country = replace(country, country == "Congo, Republic", "Republic of Congo")) %>%
+  mutate(country = replace(country, country == "Congo, Democratic Republic", "Democratic Republic of the Congo"))
+
+cpi2008 = read_csv("CPI/CPI-2008.csv", col_types = cols(
+  country = col_character(),
+  iso = col_character(),
+  region = col_character(),
+  score = col_double(),
+  rank = col_double(),
+  interval = col_character()
+)) %>%
+  select(country, score, rank) %>%
+  mutate(year = 2008) %>%
+  mutate(score = score*10) %>%
+  mutate(country = replace(country, country == "Congo", "Republic of Congo")) %>%
+  mutate(country = replace(country, country == "Guinea Bissau", "Guinea-Bissau")) %>%
+  mutate(country = replace(country, country == "Viet Nam", "Vietnam"))
+
+cpi2009 = read_csv("CPI/CPI-2009.csv", col_types = cols(
+  country = col_character(),
+  iso = col_character(),
+  region = col_character(),
+  score = col_double(),
+  rank = col_double(),
+  interval = col_character()
+)) %>%
+  select(country, score, rank) %>%
+  mutate(year = 2009) %>%
+  mutate(score = score*10) %>%
+  mutate(country = replace(country, country == "Viet Nam", "Vietnam")) %>%
+  mutate(country = replace(country, country == "Congo Republic", "Republic of Congo")) %>%
+  mutate(country = replace(country, country == "Congo Democratic Republic", "Democratic Republic of the Congo"))
+
+cpi2010 = read_csv("CPI/CPI-2010.csv", col_types = cols(
+  country = col_character(),
+  iso = col_character(),
+  region = col_character(),
+  score = col_double(),
+  rank = col_double(),
+  interval = col_character()
+)) %>%
+  select(country, score, rank) %>%
+  mutate(year = 2010) %>%
+  mutate(score = score*10) %>%
+  mutate(country = replace(country, country == "Congo-Brazzaville", "Republic of Congo")) %>%
+  mutate(country = replace(country, country == "Democratic Republic of Congo", "Democratic Republic of the Congo"))
+
+cpi2011 = read_csv("CPI/CPI-2011.csv", col_types = cols(
+  country = col_character(),
+  iso = col_character(),
+  region = col_character(),
+  score = col_double(),
+  rank = col_double(),
+  interval = col_character()
+)) %>%
+  select(country, score, rank) %>%
+  mutate(year = 2011) %>%
+  mutate(score = score*10) %>%
+  mutate(country = replace(country, country == "Congo Republic", "Republic of Congo")) %>%
+  mutate(country = replace(country, country == "Congo Democratic Republic", "Democratic Republic of the Congo")) %>%
+  mutate(country = replace(country, country == "Korea (North)", "North Korea"))
+
+cpi2012 = read_csv("CPI/CPI-2012.csv", col_types = cols(
+  country = col_character(),
+  score = col_double(),
+  rank = col_double()
+)) %>%
+  mutate(year = 2012) %>%
+  mutate(country = replace(country, country == "Congo Republic", "Republic of Congo")) %>%
+  mutate(country = replace(country, country == "Korea (North)", "North Korea"))
+
+cpi2013 = read_csv("CPI/CPI-2013.csv", col_types = cols(
+  country = col_character(),
+  iso = col_character(),
+  region = col_character(),
+  score = col_double(),
+  rank = col_double(),
+  interval = col_character()
+)) %>%
+  select(country, score, rank) %>%
+  mutate(year = 2013) %>%
+  mutate(country = replace(country, country == "Congo Republic", "Republic of Congo")) %>%
+  mutate(country = replace(country, country == "Korea (North)", "North Korea"))
+
+cpi2014 = read_csv("CPI/CPI-2014.csv", col_types = cols(
+  country = col_character(),
+  score = col_double(),
+  rank = col_double()
+)) %>%
+  mutate(year = 2014) %>%
+  mutate(country = replace(country, country == "Congo Republic", "Republic of Congo")) %>%
+  mutate(country = replace(country, country == "Korea (North)", "North Korea"))
+
+cpi2015 = read_csv("CPI/CPI-2015.csv", col_types = cols(
+  country = col_character(),
+  iso = col_character(),
+  region = col_character(),
+  score = col_double(),
+  rank = col_double(),
+  interval = col_character()
+)) %>%
+  select(country, score, rank) %>%
+  mutate(year = 2015) %>%
+  mutate(country = replace(country, country == "Congo Republic", "Republic of Congo")) %>%
+  mutate(country = replace(country, country == "Korea (North)", "North Korea"))
+
+cpi2016 = read_csv("CPI/CPI-2016.csv", col_types = cols(
+  country = col_character(),
+  score = col_double(),
+  rank = col_double()
+)) %>%
+  mutate(year = 2016) %>%
+  mutate(country = replace(country, country == "The Democratic Republic of Congo", "Democratic Republic of the Congo")) %>%
+  mutate(country = replace(country, country == "Korea (North)", "North Korea"))
+
+cpi2017 = read_csv("CPI/CPI-2017-2020.csv", col_types = cols(
+  country = col_character(),
+  `score-2020` = col_double(),
+  `rank-2020` = col_double(),
+  `score-2018` = col_double(),
+  `rank-2018` = col_double()
+)) %>%
+  select(country, `score-2017`, `rank-2017`) %>%
+  rename(score = `score-2017`, rank = `rank-2017`) %>%
+  mutate(year = 2017) %>%
+  mutate(country = replace(country, country == "Congo", "Republic of Congo")) %>%
+  mutate(country = replace(country, country == "Korea, North", "North Korea"))
+
+cpi2018 = read_csv("CPI/CPI-2017-2020.csv", col_types = cols(
+  country = col_character(),
+  `score-2020` = col_double(),
+  `rank-2020` = col_double(),
+  `score-2018` = col_double(),
+  `rank-2018` = col_double()
+)) %>%
+  select(country, `score-2018`, `rank-2018`) %>%
+  rename(score = `score-2018`, rank = `rank-2018`) %>%
+  mutate(year = 2018) %>%
+  mutate(country = replace(country, country == "Congo", "Republic of Congo")) %>%
+  mutate(country = replace(country, country == "Korea, North", "North Korea"))
+
+cpi2019 = read_csv("CPI/CPI-2017-2020.csv", col_types = cols(
+  country = col_character(),
+  `score-2020` = col_double(),
+  `rank-2020` = col_double(),
+  `score-2018` = col_double(),
+  `rank-2018` = col_double()
+)) %>%
+  select(country, `score-2019`, `rank-2019`) %>%
+  rename(score = `score-2019`, rank = `rank-2019`) %>%
+  mutate(year = 2019) %>%
+  mutate(country = replace(country, country == "Congo", "Republic of Congo")) %>%
+  mutate(country = replace(country, country == "Korea, North", "North Korea"))
+
+cpi2020 = read_csv("CPI/CPI-2018-2020.csv", col_types = cols(
+  country = col_character(),
+  `score-2020` = col_double(),
+  `rank-2020` = col_double(),
+  `score-2018` = col_double(),
+  `rank-2018` = col_double()
+)) %>%
+  select(country, `score-2020`, `rank-2020`) %>%
+  rename(score = `score-2020`, rank = `rank-2020`) %>%
+  mutate(year = 2020) %>%
+  mutate(country = replace(country, country == "Congo", "Republic of Congo")) %>%
+  mutate(country = replace(country, country == "Korea, North", "North Korea"))
+
+cpi = rbind(cpi2007, cpi2008, cpi2009, cpi2010, cpi2011, cpi2012, cpi2013, cpi2014, cpi2015, cpi2016, cpi2017, cpi2018, cpi2019, cpi2020) %>%
+  rename(prior_year_cpi_rank = rank, prior_year_cpi_score = score) %>%
+  mutate(year = year + 1) %>%
+  group_by(country) %>%
+  arrange(year) %>%
+  mutate(prior_year_cpi_rank_change = prior_year_cpi_rank - lag(prior_year_cpi_rank, 2)) %>%
+  mutate(prior_year_cpi_score_change = prior_year_cpi_score - lag(prior_year_cpi_score, 2))
+
+#used this to find where country names didn't match, and then changed if needed to the right name in the necessary df above
+#Names only changed if they appear in authoritarian_countries to be consistent with authoritarian_countries
+wrong_names = cpi %>%
+  group_by(country) %>%
+  filter(n() < 7)
+```
+
+```{r party}
+#Just tidying
+parties = read_csv("parties.csv", col_types = cols(
+  Country = col_character(),
+  `2020` = col_double(),
+  `2018` = col_double(),
+  `2016` = col_double(),
+  `2014` = col_double(),
+  `2012` = col_double(),
+  `2010` = col_double(),
+  `2008` = col_double()
+))%>%
+  rename(country = Country) %>%
+  pivot_longer(cols = c(`2020`, `2019`, `2018`, `2017`, `2016`, `2015`, `2014`, `2013`, `2012`, `2011`, `2010`, `2009`, `2008`, `2007`), names_to = "year", values_to = "party_score") %>%
+  mutate(country = replace(country, country == "Guinea-Bissau", "Guinea Bissau")) %>%
+  select(country, year, party_score) %>%
+  mutate(prior_year_party_score = factor(party_score)) %>%
+  mutate(year = as.numeric(year)) %>%
+  mutate(year = year + 1) 
+
+```
+
+```{r gdp_per_capita}
+#Just tidying
+gdp_per_capita = read_csv("gdp-per-capita.csv", col_types = cols(
+  `Country Name` = col_character(),
+  `2008` = col_double(),
+  `2009` = col_double(),
+  `2010` = col_double(),
+  `2011` = col_double(),
+  `2012` = col_double(),
+  `2013` = col_double(),
+  `2014` = col_double(),
+  `2015` = col_double(),
+  `2016` = col_double(),
+  `2017` = col_double(),
+  `2018` = col_double(),
+  `2019` = col_double(),
+  `2020` = col_double()
+)) %>%
+  select(`Country Name`, `2020`, `2019`, `2018`, `2017`, `2016`, `2015`, `2014`, `2013`, `2012`, `2011`, `2010`, `2009`, `2008`, `2007`) %>%
+  rename(country = `Country Name`) %>%
+  pivot_longer(cols = c(`2020`, `2019`, `2018`, `2017`, `2016`, `2015`, `2014`, `2013`, `2012`, `2011`, `2010`, `2009`, `2008`, `2007`), names_to = "year", values_to = "gdp_per_capita") %>%
+  rename(prior_year_gdp_per_capita = gdp_per_capita) %>%
+  mutate(year = as.numeric(year)) %>%
+  mutate(year = year + 1) %>%
+  mutate(country = replace(country, country == "Russian Federation", "Russia")) %>%
+  mutate(country = replace(country, country == "Egypt, Arab Rep.", "Egypt")) %>%
+  mutate(country = replace(country, country == "Yemen, Rep.", "Yemen")) %>%
+  mutate(country = replace(country, country == "Korea, Dem. People's Rep.", "North Korea")) %>%
+  mutate(country = replace(country, country == "Venezuela, RB", "Venezuela")) %>%
+  mutate(country = replace(country, country == "Iran, Islamic Rep.", "Iran")) %>%
+  mutate(country = replace(country, country == "Syrian Arab Republic", "Syria")) %>%
+  mutate(country = replace(country, country == "Congo, Dem. Rep.", "Democratic Republic of the Congo")) %>%
+  mutate(country = replace(country, country == "Congo, Rep.", "Republic of Congo")) %>%
+  mutate(country = replace(country, country == "Gambia, The", "Gambia")) %>%
+  mutate(country = replace(country, country == "Guinea-Bissau", "Guinea Bissau")) %>%
+  mutate(country = replace(country, country == "Kyrgyz Republic", "Kyrgyzstan")) %>%
+  mutate(country = replace(country, country == "Lao PDR", "Laos")) %>%
+  mutate(country = replace(country, country == "Hong Kong SAR, China", "Hong Kong")) %>%
+  mutate(country = replace(country, country == "Korea, Rep.", "South Korea")) %>%
+  group_by(country) %>%
+  arrange(year) %>%
+  mutate(prior_year_gdp_per_capita_change = prior_year_gdp_per_capita - lag(prior_year_gdp_per_capita, 2))
+
+```
+
+```{r resource_rents}
+#Just tidying
+resource_rents = read_csv("resource-rents.csv", col_types = cols(
+  `Country Name` = col_character(),
+  `2008` = col_double(),
+  `2009` = col_double(),
+  `2010` = col_double(),
+  `2011` = col_double(),
+  `2012` = col_double(),
+  `2013` = col_double(),
+  `2014` = col_double(),
+  `2015` = col_double(),
+  `2016` = col_double(),
+  `2017` = col_double(),
+  `2018` = col_double(),
+  `2019` = col_double(),
+  `2020` = col_double()
+)) %>%
+  rename(country = `Country Name`) %>%
+  select(country, `2019`, `2018`, `2017`, `2016`, `2015`, `2014`, `2013`, `2012`, `2011`, `2010`, `2009`, `2008`, `2007`) %>%
+  pivot_longer(cols = c(`2019`, `2018`, `2017`, `2016`, `2015`, `2014`, `2013`, `2012`, `2011`, `2010`, `2009`, `2008`, `2007`), names_to = "year", values_to = "resource_rents") %>%
+  rename(prior_year_resource_rents = resource_rents) %>%
+  mutate(year = as.numeric(year)) %>%
+  mutate(year = year + 1) %>%
+  mutate(country = replace(country, country == "Russian Federation", "Russia")) %>%
+  mutate(country = replace(country, country == "Egypt, Arab Rep.", "Egypt")) %>%
+  mutate(country = replace(country, country == "Yemen, Rep.", "Yemen")) %>%
+  mutate(country = replace(country, country == "Korea, Dem. People's Rep.", "North Korea")) %>%
+  mutate(country = replace(country, country == "Venezuela, RB", "Venezuela")) %>%
+  mutate(country = replace(country, country == "Iran, Islamic Rep.", "Iran")) %>%
+  mutate(country = replace(country, country == "Syrian Arab Republic", "Syria")) %>%
+  mutate(country = replace(country, country == "Congo, Dem. Rep.", "Democratic Republic of the Congo")) %>%
+  mutate(country = replace(country, country == "Congo, Rep.", "Republic of Congo")) %>%
+  mutate(country = replace(country, country == "Gambia, The", "Gambia")) %>%
+  mutate(country = replace(country, country == "Guinea-Bissau", "Guinea Bissau")) %>%
+  mutate(country = replace(country, country == "Kyrgyz Republic", "Kyrgyzstan")) %>%
+  mutate(country = replace(country, country == "Lao PDR", "Laos")) %>%
+  mutate(country = replace(country, country == "Hong Kong SAR, China", "Hong Kong")) %>%
+  mutate(country = replace(country, country == "Korea, Rep.", "South Korea")) %>%
+  group_by(country) %>%
+  arrange(year) %>%
+  mutate(prior_year_resource_rents_change = prior_year_resource_rents - lag(prior_year_resource_rents, 2))
+```
+
+```{r egov}
+egov2008 = read_csv("E-GOV/EGOV_DATA_2008.csv", col_types = cols(
+  `Survey Year` = col_double(),
+  `Country Name` = col_character(),
+  `E-Government Rank` = col_double(),
+  `E-Government Index` = col_double(),
+  `E-Participation Index` = col_double(),
+  `Online Service Index` = col_double(),
+  `Human Capital Index` = col_double(),
+  `Telecommunication Infrastructure Index` = col_double()
+)) 
+
+egov2010 = read_csv("E-GOV/EGOV_DATA_2010.csv", col_types = cols(
+  `Survey Year` = col_double(),
+  `Country Name` = col_character(),
+  `E-Government Rank` = col_double(),
+  `E-Government Index` = col_double(),
+  `E-Participation Index` = col_double(),
+  `Online Service Index` = col_double(),
+  `Human Capital Index` = col_double(),
+  `Telecommunication Infrastructure Index` = col_double()
+)) 
+
+egov2012 = read_csv("E-GOV/EGOV_DATA_2012.csv", col_types = cols(
+  `Survey Year` = col_double(),
+  `Country Name` = col_character(),
+  `E-Government Rank` = col_double(),
+  `E-Government Index` = col_double(),
+  `E-Participation Index` = col_double(),
+  `Online Service Index` = col_double(),
+  `Human Capital Index` = col_double(),
+  `Telecommunication Infrastructure Index` = col_double()
+)) 
+
+egov2014 = read_csv("E-GOV/EGOV_DATA_2014.csv", col_types = cols(
+  `Survey Year` = col_double(),
+  `Country Name` = col_character(),
+  `E-Government Rank` = col_double(),
+  `E-Government Index` = col_double(),
+  `E-Participation Index` = col_double(),
+  `Online Service Index` = col_double(),
+  `Human Capital Index` = col_double(),
+  `Telecommunication Infrastructure Index` = col_double()
+)) 
+
+egov2016 = read_csv("E-GOV/EGOV_DATA_2016.csv", col_types = cols(
+  `Survey Year` = col_double(),
+  `Country Name` = col_character(),
+  `E-Government Rank` = col_double(),
+  `E-Government Index` = col_double(),
+  `E-Participation Index` = col_double(),
+  `Online Service Index` = col_double(),
+  `Human Capital Index` = col_double(),
+  `Telecommunication Infrastructure Index` = col_double()
+)) 
+
+egov2018 = read_csv("E-GOV/EGOV_DATA_2018.csv", col_types = cols(
+  `Survey Year` = col_double(),
+  `Country Name` = col_character(),
+  `E-Government Rank` = col_double(),
+  `E-Government Index` = col_double(),
+  `E-Participation Index` = col_double(),
+  `Online Service Index` = col_double(),
+  `Human Capital Index` = col_double(),
+  `Telecommunication Infrastructure Index` = col_double()
+)) 
+
+egov2020 = read_csv("E-GOV/EGOV_DATA_2020.csv", col_types = cols(
+  `Survey Year` = col_double(),
+  `Country Name` = col_character(),
+  `E-Government Rank` = col_double(),
+  `E-Government Index` = col_double(),
+  `E-Participation Index` = col_double(),
+  `Online Service Index` = col_double(),
+  `Human Capital Index` = col_double(),
+  `Telecommunication Infrastructure Index` = col_double()
+))
+
+e_gov = rbind(egov2008, egov2010, egov2012, egov2014, egov2016, egov2018, egov2020) %>%
+  rename(country = `Country Name`,
+         year = `Survey Year`,
+         e_gov_rank = `E-Government Rank`,
+         e_gov_index = `E-Government Index`,
+         e_participation_index = `E-Participation Index`,
+         osi = `Online Service Index`,
+         hci = `Human Capital Index`,
+         tti = `Telecommunication Infrastructure Index`) %>%
+  group_by(country) %>%
+  arrange(year) %>%
+  mutate(e_gov_rank_change = e_gov_rank - lag(e_gov_rank),
+         e_gov_index_change = e_gov_index - lag(e_gov_index),
+         e_participation_index_change = e_participation_index - lag(e_participation_index),
+         osi_change = osi - lag(osi),
+         hci_change = hci - lag(hci),
+         tti_change = tti - lag(tti)) %>% 
+  mutate(country = replace(country, country == "Russian Federation", "Russia")) %>%
+  mutate(country = replace(country, country == "Egypt, Arab Rep.", "Egypt")) %>%
+  mutate(country = replace(country, country == "Yemen, Rep.", "Yemen")) %>%
+  mutate(country = replace(country, country == "Democratic People's Republic of Korea", "North Korea")) %>%
+  mutate(country = replace(country, country == "Venezuela, RB", "Venezuela")) %>%
+  mutate(country = replace(country, country == "Iran (Islamic Republic of)", "Iran")) %>%
+  mutate(country = replace(country, country == "Syrian Arab Republic", "Syria")) %>%
+  mutate(country = replace(country, country == "Congo, Dem. Rep.", "Democratic Republic of the Congo")) %>%
+  mutate(country = replace(country, country == "Congo", "Republic of Congo")) %>%
+  mutate(country = replace(country, country == "Gambia, The", "Gambia")) %>%
+  mutate(country = replace(country, country == "Guinea-Bissau", "Guinea Bissau")) %>%
+  mutate(country = replace(country, country == "Kyrgyz Republic", "Kyrgyzstan")) %>%
+  mutate(country = replace(country, country == "Lao People's Democratic Republic", "Laos")) %>%
+  mutate(country = replace(country, country == "Hong Kong SAR, China", "Hong Kong")) %>%
+  mutate(country = replace(country, country == "Viet Nam", "Vietnam")) %>%
+  mutate(country = replace(country, country == "Republic of Korea", "South Korea")) %>%
+  mutate(country = replace(country, country == "	
+United Republic of Tanzania", "Tanzania")) 
+
+```
+
+```{r protests, warning = FALSE}
+#Going to get 2 pieces of info: first was there a large protest > 10,000 and second how many protests were there in a year 
+
+
+protests = read_csv("protest.csv", col_types = cols(
+  .default = col_character(),
+  id = col_double(),
+  ccode = col_double(),
+  year = col_double(),
+  protest = col_double(),
+  protestnumber = col_double(),
+  startday = col_double(),
+  startmonth = col_double(),
+  startyear = col_double(),
+  endday = col_double(),
+  endmonth = col_double(),
+  endyear = col_double(),
+  protesterviolence = col_double()
+)) %>%
+  filter(year > 2005) %>%
+  mutate(participants2 = ifelse(is.na(participants_category), participants, participants_category)) %>%
+  #I'm going to cut everything after a character shows up in the participants category. This means that I will be estimating the low end of the category so the protests should all be "at least" that amount
+  mutate(participants3 = sub("> | <", "", participants2)) %>%
+  mutate(participants3 = gsub("\\,", "", participants3)) %>%
+  mutate(participants4 = gsub("[[:punct:]].*", "", participants3)) %>%
+  mutate(participants_min = as.numeric(gsub("[[:alpha:]].*", "", participants4))) %>%
+  select(country, year, protest, participants_min)
+
+#Now summarize data:
+  #Want to capture protests up to 10,000, so I should get all above 5000 because that is 
+protests_summarized = protests %>%  
+  group_by(country, year) %>%
+  #Apparently if there are NAs max will do nothing so needed to add na.rm 
+  #Also something was going wrong where it was counting if it was 0 protests as a "True" for big protests, so I added that the sum of the protests must be > 0 and that works
+  summarize(big_protest = ifelse(max(participants_min > 4999, na.rm = TRUE) & sum(protest) > 0, TRUE, FALSE),
+            num_protests = sum(protest),
+            .groups = "drop") %>%
+  rename(prior_year_big_protest = big_protest,
+         prior_year_num_protests = num_protests) %>%
+  mutate(year = year + 1) %>%
+  mutate(country = replace(country, country == "Congo Brazzaville", "Republic of Congo")) %>%
+  mutate(country = replace(country, country == "Congo Kinshasa", "Democratic Republic of the Congo")) %>%
+  mutate(country = replace(country, country == "Guinea-Bissau", "Guinea Bissau")) %>%
+  mutate(country = replace(country, country == "United Arab Emirate", "United Arab Emirates")) %>%
+  group_by(country) %>%
+  arrange(year) %>%
+  mutate(prior_year_big_protest_change = prior_year_big_protest - lag(prior_year_big_protest, 2)) %>%
+  group_by(country) %>%
+  arrange(year) %>%
+  mutate(prior_year_num_protests_change = prior_year_num_protests - lag(prior_year_num_protests, 2)) 
+  
+```
+
+```{r coup}
+coups = read_csv("coup.csv", col_types = cols(
+  .default = col_double(),
+  coup_id = col_character(),
+  country = col_character(),
+  event_type = col_character()
+)) %>%
+  select(country, year) %>%
+  mutate(prior_year_coup = 1) %>%
+  mutate(year = year + 1) %>%
+  filter(year > 1995) %>%
+  mutate(country = replace(country, country == "Kyrgyz Republic", "Kyrgyzstan")) %>%
+  mutate(country = replace(country, country == "Guinea-Bissau", "Guinea Bissau")) %>%
+  mutate(country = replace(country, country == "Congo", "Republic of Congo"))
+
+#Check country names
+#check = authoritarian_countries %>%
+  #left_join(coups)
+
+#Joining so I have all the country years for authoritarian countries. I can then use this to add coup variables for each country year based on the coup variable
+coups2 = coups %>%
+  full_join(authoritarian_countries, by = c("country", "year")) %>%
+  mutate(prior_year_coup = ifelse(is.na(prior_year_coup), 0, 1)) %>%
+  #The values_fn = sum deals with when there are more than one in a year
+  pivot_wider(names_from = year, values_from = prior_year_coup, values_fn = sum) %>%
+  #There were apparently no coups in 2019...
+  #Rowwise does something that works, see here: https://stackoverflow.com/questions/31461357/sum-of-two-columns-of-data-frame-with-na-values/31461412
+  rowwise() %>%
+  mutate(prior_coups_2020 = ifelse(sum(`2020`, `2018`, `2017`, `2016`, `2015`, `2014`, `2013`, `2012`, `2011`, na.rm = TRUE) > 0, TRUE, FALSE)) %>%
+  mutate(prior_coups_2018 = ifelse(sum(`2018`, `2017`, `2016`, `2015`, `2014`, `2013`, `2012`, `2011`, `2010`, `2009`, na.rm = TRUE) > 0, TRUE, FALSE)) %>%
+  mutate(prior_coups_2016 = ifelse(sum(`2016`, `2015`, `2014`, `2013`, `2012`, `2011`, `2010`, `2009`, `2008`, `2007`, na.rm = TRUE) > 0, TRUE, FALSE)) %>%
+  mutate(prior_coups_2014 = ifelse(sum(`2014`, `2013`, `2012`, `2011`, `2010`, `2009`, `2008`, `2007`, `2006`, `2005`, na.rm = TRUE) > 0, TRUE, FALSE)) %>%
+  mutate(prior_coups_2012 = ifelse(sum(`2012`, `2011`, `2010`, `2009`, `2008`, `2007`, `2006`, `2005`, `2004`, `2003`, na.rm = TRUE) > 0, TRUE, FALSE)) %>%
+  mutate(prior_coups_2010 = ifelse(sum(`2010`, `2009`, `2008`, `2007`, `2006`, `2005`, `2004`, `2003`, `2002`, `2001`, na.rm = TRUE) > 0, TRUE, FALSE)) %>%
+  mutate(prior_coups_2008 = ifelse(sum(`2008`, `2007`, `2006`, `2005`, `2004`, `2003`, `2002`, `2001`, `2000`, `1999`, na.rm = TRUE) > 0, TRUE, FALSE)) %>%
+  select(country, prior_coups_2020, prior_coups_2018, prior_coups_2016, prior_coups_2014, prior_coups_2012, prior_coups_2010, prior_coups_2008) %>%
+  rename(`2020` = prior_coups_2020,
+         `2018` = prior_coups_2018,
+         `2016` = prior_coups_2016,
+         `2014` = prior_coups_2014,
+         `2012` = prior_coups_2012,
+         `2010` = prior_coups_2010,
+         `2008` = prior_coups_2008) %>%
+  pivot_longer(cols = c(`2020`:`2008`), values_to = "prior_10_years_coups", names_to = "year") %>%
+  mutate(year = as.double(year)) %>%
+  group_by(country) %>%
+  arrange(year) %>%
+  mutate(prior_10_years_coups_change = prior_10_years_coups - lag(prior_10_years_coups, 2))
+
+
+  
+```
+
+
+```{r combine}
+#Check to see if missing data (NAs) are truly missing or just a name problem, if so change the name
+
+all_data = authoritarian_countries %>%
+  left_join(cpi, by = c("country", "year")) %>%
+  left_join(parties, by = c("country", "year")) %>%
+  left_join(gdp_per_capita, by = c("country", "year")) %>%
+  left_join(resource_rents, by = c("country", "year")) %>%
+  left_join(e_gov, by = c("country", "year")) %>%
+  left_join(protests_summarized, by = c("country", "year")) %>%
+  left_join(coups2, by = c("country", "year")) %>%
+  filter(e_gov_rank != "NA")%>%
+  #This code from Steve to transform into logit model
+  mutate(osi_logit = car:::logit(osi, adjust = 0.01)) %>%
+  mutate(e_participation_index_logit = car:::logit(e_participation_index, adjust = 0.01))
+  
+
+modelling_data = all_data %>%
+  select(year, prior_year_cpi_score, prior_year_party_score, prior_year_gdp_per_capita, prior_year_resource_rents, e_participation_index, osi, hci, tti, prior_year_big_protest, prior_year_num_protests, prior_10_years_coups)
+  
+```
+
+
+```{r regression 1}
+model_full = lm(osi ~ prior_year_party_score + prior_year_cpi_score + prior_10_years_coups + prior_year_gdp_per_capita + hci + prior_year_resource_rents + prior_year_num_protests + tti, data = modelling_data)
+summary(model_full, conf.int = TRUE)
+```
+
+
+```{r looking for multicollinearity}
+modelling_data %>%
+  select(osi, prior_year_cpi_score, prior_year_gdp_per_capita, hci, prior_year_resource_rents, prior_year_num_protests, tti) %>%
+  #I'll figure out how to deal with missing data and include it better later
+  cor(use = "complete.obs")
+```
+
+
+
+
+```{r regression 2}
+#Useless!!
+changes = lm(osi_change ~ prior_year_cpi_score_change + prior_year_gdp_per_capita_change + prior_year_cpi_score_change + prior_year_resource_rents_change + hci_change + tti_change + prior_year_big_protest_change + prior_10_years_coups_change, data = all_data)
+tidy(changes, conf.int = TRUE)
+```
+
+```{r model just novel}
+model_novel_osi = lm(osi_logit ~ prior_year_party_score + prior_10_years_coups + prior_year_resource_rents + prior_year_big_protest + tti + as.character(year), data = all_data)
+tidy(model_novel_osi, conf.int = TRUE)
+summary(model_novel_osi)
+```
+```{r}
+model_novel_e_participation = lm(e_participation_index_logit ~ prior_year_party_score + prior_10_years_coups + prior_year_resource_rents + prior_year_big_protest + tti + as.character(year), data = all_data)
+tidy(model_novel_e_participation, conf.int = TRUE)
+summary(model_novel_e_participation)
+```
+
+```{r}
+numeric_only = modelling_data %>%
+  select(prior_year_cpi_score, prior_year_gdp_per_capita, prior_year_resource_rents, e_participation_index, osi, hci, tti, prior_year_num_protests)
+corr_df = data.frame(cor(numeric_only, use = "pairwise.complete.obs"))
+
+ols_step_forward_p(model_full)
+
+step_forward = lm(osi ~ tti + prior_year_cpi_score + prior_year_gdp_per_capita + prior_year_resource_rents + hci, data = modelling_data)
+tidy(step_forward)
+```
+
+```{r}
+#steve stuff
+
+# linear mixed effects model 
+
+library(lme4)
+options(scipen=20)
+
+form1 <- formula(osi_logit ~ prior_year_party_score + prior_10_years_coups+ prior_year_resource_rents + prior_year_big_protest + tti + factor(year) + (1 | country))
+
+mod1 <- lmer(form1, data = all_data)
+
+summary(mod1)
+```
+
+
+
+```{r}
+#more steve stuff
+mod2 <- lme(fixed = osi_logit ~ prior_year_party_score + prior_10_years_coups + + prior_year_resource_rents + prior_year_big_protest + tti + factor(year),
+            random = ~ 1 | country,
+            #Figure out how many levels of autoregression to go back  - supposed to make some kind of graph
+            correlation = corARMA(form = ~ year | country, p=3, q=0),
+            data = all_data,
+            na.action = "na.exclude")
+
+summary(mod2)
+
+```
+
+
+```{r}
+#more steve stuff
+mod2 <- lme(fixed = e_participation_index_logit ~ prior_year_party_score + prior_10_years_coups + prior_year_big_protest + prior_year_resource_rents + tti + factor(year),
+            random = ~ 1 | country,
+            #Figure out how many levels of autoregression to go back  - supposed to make some kind of graph
+            correlation = corARMA(form = ~ year | country, p=3, q=0),
+            data = all_data,
+            na.action = "na.exclude")
+
+summary(mod2)
+
+```
+
+
+```{r}
+#big protest missing Maldives, Eswatini, Fiji
+#Resource rents missing South Sudan, North Korea, Venezuela, Iran, Syria, Eritrea, Somalia, Turkmenistan, Cuba
+#coups missing none
+#party missing Myanmar, Yemen, Bangladesh, Bolivia, Honduras, Mali, Pakistan, Thailand, Nepal, Nicaragua, Zambia, Papua New Guinea, Turkey, Ukraine, Sri Lanka, Comoros, Fiji, Serbia
+
+missing_party = all_data %>%
+  filter(is.na(prior_year_party_score))
+```
+
+
+
+
+```{r}
+#Interactions 
+
+mod2 <- lme(fixed = osi_logit ~ prior_year_party_score + prior_year_big_protest + prior_10_years_coups * prior_year_resource_rents + tti + factor(year),
+            random = ~ 1 | country,
+            #Figure out how many levels of autoregression to go back  - supposed to make some kind of graph
+            correlation = corARMA(form = ~ year | country, p=3, q=0),
+            data = all_data,
+            na.action = "na.exclude")
+
+summary(mod2)
+
+
+```
+
