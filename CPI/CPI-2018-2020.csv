@@ -1,0 +1,181 @@
+country,score-2020,rank-2020,score-2018,rank-2018
+Denmark,88,1,88,1
+New Zealand,88,1,87,2
+Finland,85,3,85,3
+Singapore,85,3,85,3
+Sweden,85,3,85,3
+Switzerland,85,3,85,3
+Norway,84,7,84,7
+Netherlands,82,8,82,8
+Germany,80,9,80,11
+Luxembourg,80,9,81,9
+Australia,77,11,77,13
+Canada,77,11,81,9
+Hong Kong,77,11,76,14
+United Kingdom,77,11,80,11
+Austria,76,15,76,14
+Belgium,76,15,75,17
+Estonia,75,17,73,18
+Iceland,75,17,76,14
+Japan,74,19,73,18
+Ireland,72,20,73,18
+United Arab Emirates,71,21,70,23
+Uruguay,71,21,70,23
+France,69,23,72,21
+Bhutan,68,24,68,25
+Chile,67,25,67,27
+United States of America,67,25,71,22
+Seychelles,66,27,66,28
+Taiwan,65,28,63,31
+Barbados,64,29,68,25
+Bahamas,63,30,65,29
+Qatar,63,30,62,33
+Spain,62,32,58,41
+"Korea, South",61,33,57,45
+Portugal,61,33,64,30
+Botswana,60,35,61,34
+Brunei Darussalam,60,35,63,31
+Israel,60,35,61,34
+Lithuania,60,35,59,38
+Slovenia,60,35,60,36
+Saint Vincent and the Grenadines,59,40,58,41
+Cabo Verde,58,41,57,45
+Costa Rica,57,42,56,48
+Cyprus,57,42,59,38
+Latvia,57,42,58,41
+Georgia,56,45,58,41
+Poland,56,45,60,36
+Saint Lucia,56,45,55,50
+Dominica,55,48,57,45
+Czechia,54,49,59,38
+Oman,54,49,52,53
+Rwanda,54,49,56,48
+Grenada,53,52,52,53
+Italy,53,52,52,53
+Malta,53,52,54,51
+Mauritius,53,52,51,56
+Saudi Arabia,53,52,49,58
+Malaysia,51,57,47,61
+Namibia,51,57,53,52
+Greece,50,59,45,67
+Armenia,49,60,35,105
+Jordan,49,60,49,58
+Slovakia,49,60,50,57
+Belarus,47,63,44,70
+Croatia,47,63,48,60
+Cuba,47,63,47,61
+Sao Tome and Principe,47,63,46,64
+Montenegro,45,67,45,67
+Senegal,45,67,45,67
+Bulgaria,44,69,42,77
+Hungary,44,69,46,64
+Jamaica,44,69,44,70
+Romania,44,69,47,61
+South Africa,44,69,43,73
+Tunisia,44,69,43,73
+Ghana,43,75,41,78
+Maldives,43,75,31,124
+Vanuatu,43,75,46,64
+Argentina,42,78,40,85
+Bahrain,42,78,36,99
+China,42,78,39,87
+Kuwait,42,78,41,78
+Solomon Islands,42,78,44,70
+Benin,41,83,40,85
+Guyana,41,83,37,93
+Lesotho,41,83,41,78
+Burkina Faso,40,86,41,78
+India,40,86,41,78
+Morocco,40,86,43,73
+Timor-Leste,40,86,35,105
+Trinidad and Tobago,40,86,41,78
+Turkey,40,86,41,78
+Colombia,39,92,36,99
+Ecuador,39,92,34,114
+Brazil,38,94,35,105
+Ethiopia,38,94,34,114
+Kazakhstan,38,94,31,124
+Peru,38,94,35,105
+Serbia,38,94,39,87
+Sri Lanka,38,94,38,89
+Suriname,38,94,43,73
+Tanzania,38,94,36,99
+Gambia,37,102,37,93
+Indonesia,37,102,38,89
+Albania,36,104,36,99
+Algeria,36,104,35,105
+Cote d'Ivoire,36,104,35,105
+El Salvador,36,104,35,105
+Kosovo,36,104,37,93
+Thailand,36,104,36,99
+Vietnam,36,104,33,117
+Bosnia and Herzegovina,35,111,38,89
+Mongolia,35,111,37,93
+North Macedonia,35,111,37,93
+Panama,35,111,37,93
+Moldova,34,115,33,117
+Philippines,34,115,36,99
+Egypt,33,117,35,105
+Eswatini,33,117,38,89
+Nepal,33,117,31,124
+Sierra Leone,33,117,30,129
+Ukraine,33,117,32,120
+Zambia,33,117,35,105
+Niger,32,123,34,114
+Bolivia,31,124,29,132
+Kenya,31,124,27,144
+Kyrgyzstan,31,124,29,132
+Mexico,31,124,28,138
+Pakistan,31,124,33,117
+Azerbaijan,30,129,25,152
+Gabon,30,129,31,124
+Malawi,30,129,32,120
+Mali,30,129,32,120
+Russia,30,129,28,138
+Laos,29,134,29,132
+Mauritania,29,134,27,144
+Togo,29,134,30,129
+Dominican Republic,28,137,30,129
+Guinea,28,137,28,138
+Liberia,28,137,32,120
+Myanmar,28,137,29,132
+Paraguay,28,137,29,132
+Angola,27,142,19,165
+Djibouti,27,142,31,124
+Papua New Guinea,27,142,28,138
+Uganda,27,142,26,149
+Bangladesh,26,146,26,149
+Central African Republic,26,146,26,149
+Uzbekistan,26,146,23,158
+Cameroon,25,149,25,152
+Guatemala,25,149,27,144
+Iran,25,149,28,138
+Lebanon,25,149,28,138
+Madagascar,25,149,25,152
+Mozambique,25,149,23,158
+Nigeria,25,149,27,144
+Tajikistan,25,149,25,152
+Honduras,24,157,29,132
+Zimbabwe,24,157,22,160
+Nicaragua,22,159,25,152
+Cambodia,21,160,20,161
+Chad,21,160,19,165
+Comoros,21,160,27,144
+Eritrea,21,160,24,157
+Iraq,21,160,18,168
+Afghanistan,19,165,16,172
+Burundi,19,165,17,170
+Congo,19,165,19,165
+Guinea Bissau,19,165,16,172
+Turkmenistan,19,165,20,161
+Democratic Republic of the Congo,18,170,20,161
+Haiti,18,170,20,161
+"Korea, North",18,170,14,176
+Libya,17,173,17,170
+Equatorial Guinea,16,174,16,172
+Sudan,16,174,16,172
+Venezuela,15,176,18,168
+Yemen,15,176,14,176
+Syria,14,178,13,178
+Somalia,12,179,10,180
+South Sudan,12,179,13,178

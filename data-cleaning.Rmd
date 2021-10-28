@@ -595,7 +595,21 @@ modelling_data = all_data %>%
 ```
 
 
+```{r}
+#big protest missing Maldives, Eswatini, Fiji
+#Resource rents missing South Sudan, North Korea, Venezuela, Iran, Syria, Eritrea, Somalia, Turkmenistan, Cuba
+#coups missing none
+#party originally missing Myanmar, Yemen, Bangladesh, Bolivia, Honduras, Mali, Pakistan, Thailand, Nepal, Nicaragua, Zambia, Papua New Guinea, Turkey, Ukraine, Sri Lanka, Comoros, Fiji, Serbia
+
+#I manually did the research to add the above to the party dataset and the other missing data does not seem significant enough for me to impute values
+#But I  could do that I suppose
+
+missing_party = all_data %>%
+  filter(is.na(prior_year_party_score))
+```
+
 ```{r regression 1}
+#Not a valid model because of autocorrelatin etc
 model_full = lm(osi ~ prior_year_party_score + prior_year_cpi_score + prior_10_years_coups + prior_year_gdp_per_capita + hci + prior_year_resource_rents + prior_year_num_protests + tti, data = modelling_data)
 summary(model_full, conf.int = TRUE)
 ```
@@ -604,8 +618,8 @@ summary(model_full, conf.int = TRUE)
 ```{r looking for multicollinearity}
 modelling_data %>%
   select(osi, prior_year_cpi_score, prior_year_gdp_per_capita, hci, prior_year_resource_rents, prior_year_num_protests, tti) %>%
-  #I'll figure out how to deal with missing data and include it better later
   cor(use = "complete.obs")
+#No issues here
 ```
 
 
@@ -618,29 +632,22 @@ tidy(changes, conf.int = TRUE)
 ```
 
 ```{r model just novel}
+#Here I am just using most theoretically linked / previously unused variables
+#This model is also invalid
 model_novel_osi = lm(osi_logit ~ prior_year_party_score + prior_10_years_coups + prior_year_resource_rents + prior_year_big_protest + tti + as.character(year), data = all_data)
 tidy(model_novel_osi, conf.int = TRUE)
 summary(model_novel_osi)
 ```
 ```{r}
+#Also invalid, same as above but for e-participation 
 model_novel_e_participation = lm(e_participation_index_logit ~ prior_year_party_score + prior_10_years_coups + prior_year_resource_rents + prior_year_big_protest + tti + as.character(year), data = all_data)
 tidy(model_novel_e_participation, conf.int = TRUE)
 summary(model_novel_e_participation)
 ```
 
-```{r}
-numeric_only = modelling_data %>%
-  select(prior_year_cpi_score, prior_year_gdp_per_capita, prior_year_resource_rents, e_participation_index, osi, hci, tti, prior_year_num_protests)
-corr_df = data.frame(cor(numeric_only, use = "pairwise.complete.obs"))
-
-ols_step_forward_p(model_full)
-
-step_forward = lm(osi ~ tti + prior_year_cpi_score + prior_year_gdp_per_capita + prior_year_resource_rents + hci, data = modelling_data)
-tidy(step_forward)
-```
 
 ```{r}
-#steve stuff
+#This is a starting point model from Steve in IQSS that is more valid because deals with panel data (not entirely sure what that means or what it does though under the hood?)
 
 # linear mixed effects model 
 
@@ -657,8 +664,11 @@ summary(mod1)
 
 
 ```{r}
-#more steve stuff
-mod2 <- lme(fixed = osi_logit ~ prior_year_party_score + prior_10_years_coups + + prior_year_resource_rents + prior_year_big_protest + tti + factor(year),
+#Even more valid model by addressing autocorrelation 
+#Not sure how many years back to do the autocorrelation though
+
+
+mod2 <- lme(fixed = osi_logit ~ prior_year_party_score + prior_10_years_coups + prior_year_resource_rents + prior_year_big_protest + tti + factor(year),
             random = ~ 1 | country,
             #Figure out how many levels of autoregression to go back  - supposed to make some kind of graph
             correlation = corARMA(form = ~ year | country, p=3, q=0),
@@ -671,7 +681,8 @@ summary(mod2)
 
 
 ```{r}
-#more steve stuff
+#Same as above but with e-participation instead; basically the same
+
 mod2 <- lme(fixed = e_participation_index_logit ~ prior_year_party_score + prior_10_years_coups + prior_year_big_protest + prior_year_resource_rents + tti + factor(year),
             random = ~ 1 | country,
             #Figure out how many levels of autoregression to go back  - supposed to make some kind of graph
@@ -684,23 +695,13 @@ summary(mod2)
 ```
 
 
-```{r}
-#big protest missing Maldives, Eswatini, Fiji
-#Resource rents missing South Sudan, North Korea, Venezuela, Iran, Syria, Eritrea, Somalia, Turkmenistan, Cuba
-#coups missing none
-#party missing Myanmar, Yemen, Bangladesh, Bolivia, Honduras, Mali, Pakistan, Thailand, Nepal, Nicaragua, Zambia, Papua New Guinea, Turkey, Ukraine, Sri Lanka, Comoros, Fiji, Serbia
-
-missing_party = all_data %>%
-  filter(is.na(prior_year_party_score))
-```
-
-
-
 
 ```{r}
-#Interactions 
+#Adding some interactions
 
-mod2 <- lme(fixed = osi_logit ~ prior_year_party_score + prior_year_big_protest + prior_10_years_coups * prior_year_resource_rents + tti + factor(year),
+#This seems to be the most interesting model so far in terms of seeing significant effects from my variables (I did check other interactions and nothing useful)
+
+mod2 <- lme(fixed = osi_logit ~ prior_year_party_score + prior_year_big_protest + prior_10_years_coups * prior_year_resource_rents + tti + hci+ factor(year),
             random = ~ 1 | country,
             #Figure out how many levels of autoregression to go back  - supposed to make some kind of graph
             correlation = corARMA(form = ~ year | country, p=3, q=0),
@@ -711,4 +712,14 @@ summary(mod2)
 
 
 ```
+```{r}
+#Ignore this
+numeric_only = modelling_data %>%
+  select(prior_year_cpi_score, prior_year_gdp_per_capita, prior_year_resource_rents, e_participation_index, osi, hci, tti, prior_year_num_protests)
+corr_df = data.frame(cor(numeric_only, use = "pairwise.complete.obs"))
 
+ols_step_forward_p(model_full)
+
+step_forward = lm(osi ~ tti + prior_year_cpi_score + prior_year_gdp_per_capita + prior_year_resource_rents + hci, data = modelling_data)
+tidy(step_forward)
+```
