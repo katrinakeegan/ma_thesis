@@ -589,8 +589,6 @@ all_data = authoritarian_countries %>%
   mutate(e_participation_index_logit = car:::logit(e_participation_index, adjust = 0.01))
   
 
-modelling_data = all_data %>%
-  select(year, prior_year_cpi_score, prior_year_party_score, prior_year_gdp_per_capita, prior_year_resource_rents, e_participation_index, osi, hci, tti, prior_year_big_protest, prior_year_num_protests, prior_10_years_coups)
   
 ```
 
@@ -608,118 +606,183 @@ missing_party = all_data %>%
   filter(is.na(prior_year_party_score))
 ```
 
-```{r regression 1}
-#Not a valid model because of autocorrelatin etc
-model_full = lm(osi ~ prior_year_party_score + prior_year_cpi_score + prior_10_years_coups + prior_year_gdp_per_capita + hci + prior_year_resource_rents + prior_year_num_protests + tti, data = modelling_data)
-summary(model_full, conf.int = TRUE)
-```
-
-
 ```{r looking for multicollinearity}
-modelling_data %>%
+all_data %>%
   select(osi, prior_year_cpi_score, prior_year_gdp_per_capita, hci, prior_year_resource_rents, prior_year_num_protests, tti) %>%
   cor(use = "complete.obs")
 #No issues here
 ```
 
 
+```{r}
+#"Naive" simple ols model with all data (except corruption)
+#For osi
+simple_model_osi = lm(osi_logit ~ prior_year_party_score + prior_10_years_coups + prior_year_resource_rents + prior_year_big_protest + prior_year_gdp_per_capita + hci + tti, data = all_data)
+tidy(simple_model_osi)
+#Here protests are significant, and so are resource rents in the direction expected
+#That is, the public pressure ones are significant
+#Also, coups are significant, also in the direction expected
+
+```
 
 
+```{r}
+#"Naive" simple ols model with all data (except corruption)
+#For e-participation
+simple_model_participation = lm(e_participation_index_logit ~ prior_year_party_score + prior_10_years_coups + prior_year_resource_rents + prior_year_big_protest + prior_year_gdp_per_capita + hci + tti, data = all_data)
+tidy(simple_model_participation)
+#Here coups and resource rents are signficant. So, With higher elite pressure (from coups) less likely to do e-democracy. Also, if have resource rents less likely to do e-democracy.
+#Most interestingly, protest drops off as signficant. Possible explantion: when people are protesting them, want to satisfy them with better economic and social conditions. But don't (necessarily) want to give them more e-democracy because it could lead to revolution
+```
+
+
+
+
+```{r}
+#Basic cross-national for only one year. This avoids auto-correlation issues.
+
+#Very little is significant though, so it looks like there really is not enough data for this. 
+
+#Interestingly, resource rents are still signficant.  
+
+#This is true for every year, except 2014 and 2010, when resource rents are not significant.
+
+#In 2008, coups were significant and resource rents were not
+
+#The story with e-participation is essentially the same.
+
+data_2020 = all_data %>%
+  filter(year == 2020)
+
+model_2020 = lm(osi_logit ~ prior_year_party_score + prior_10_years_coups + prior_year_resource_rents + prior_year_big_protest + prior_year_gdp_per_capita + hci + tti, data = data_2020)
+tidy(model_2020)
+```
+
+```{r}
+#This model was Steve from IQSS
+
+#It treats the data as panel data and deals with autocorrelation
+
+#Now the elite variables are significant: coups and new authoritarian parties
+
+#See below for explanation on why only new authoritarian parties may reduce e-government
+
+#The problem is that in some year protests do occur more than other years, so controlling for year doesn't make sense, which may be why protests are no longer significant
+
+panel_data_model_osi <- lme(fixed = osi_logit ~ prior_year_party_score + prior_10_years_coups + prior_year_resource_rents + prior_year_big_protest + prior_year_gdp_per_capita + hci + tti + factor(year),
+            random = ~ 1 | country,
+            #Figure out how many levels of autoregression to go back  - supposed to make some kind of graph
+            correlation = corARMA(form = ~ year | country, p=3, q=0),
+            data = all_data,
+            na.action = "na.exclude")
+
+summary(panel_data_model_osi)
+
+```
+
+
+
+
+
+```{r}
+#Same kind of model as above
+
+#No significant variables
+
+#That means that elite resistence does not relate to e-democracy, which does make sense
+
+#Because e-democracy has less effect on corruption rents than online services possibly 
+
+panel_data_model_participation <- lme(fixed = e_participation_index_logit ~ prior_year_party_score + prior_10_years_coups + prior_year_big_protest + prior_year_resource_rents + prior_year_gdp_per_capita + tti + factor(year),
+            random = ~ 1 | country,
+            #Figure out how many levels of autoregression to go back  - supposed to make some kind of graph
+            correlation = corARMA(form = ~ year | country, p=3, q=0),
+            data = all_data,
+            na.action = "na.exclude")
+summary(panel_data_model_participation)
+```
+
+
+
+```{r}
+#Adding all interactions
+
+#Significant variables:
+#When there was a protest, there is no regime party, and there have been no coups, resource rents increase e-government. (So, if there is public demand and no resistance)
+
+#If there is a coup history and no regime party and no protests, resource rents decrease e-government.
+
+#If there is a regime party (increased elite strength), and there is a protest (public demand), resource rents decrease e-government (can be spent on other things to appease the public in the face of elite resistence)
+
+#The last two things say the same thing, except the form of elite strength (coups vs regime party) doesn't matter; they both have the same effect.
+
+panel_data_interaction_osi <- lme(fixed = osi_logit ~ prior_year_party_score * prior_year_big_protest * prior_10_years_coups * prior_year_resource_rents + tti + prior_year_gdp_per_capita + hci + factor(year),
+            random = ~ 1 | country,
+            #Figure out how many levels of autoregression to go back  - supposed to make some kind of graph
+            correlation = corARMA(form = ~ year | country, p=3, q=0),
+            data = all_data,
+            na.action = "na.exclude")
+
+summary(panel_data_interaction_osi)
+```
+
+```{r}
+#Other interaction scenarios
+
+
+#Interacting resource rents and coups: Resource rents only decrease e-government when there has been a coup history (so if there is elite strength). Coups alone do not decrease e-government. 
+
+#Checked others, nothing really
+
+panel_data_interaction_osi <- lme(fixed = osi_logit ~ prior_year_resource_rents * prior_10_years_coups + prior_year_big_protest + prior_year_party_score + tti + prior_year_gdp_per_capita + hci + factor(year),
+            random = ~ 1 | country,
+            #Figure out how many levels of autoregression to go back  - supposed to make some kind of graph
+            correlation = corARMA(form = ~ year | country, p=3, q=0),
+            data = all_data,
+            na.action = "na.exclude")
+
+summary(panel_data_interaction_osi)
+
+
+```
+
+
+
+
+
+
+Random effects model: assume observed differences between countries can't be correlated with independent variables 
+Interaction maybe between year and protest? Can't just control for year, because protests do occur more in certain years
+Cross-national comparison- what is that? That is the "naive" model with just ols, can check a package that goes robust=true, which clusters the standard errors (an alternative to auto-correlation)
+Pure cross-national: One year
+If use panel data - fewer people say that there is omitted variable bias. Because every country has a bunch of stuff, and we aren't worrying about what that stuff captures in each country because that is fairly consistent over time. 
+Protest becomes significant when remove time. Don't have to put everything in every model if you think certain assumptions are better for testing certain hypotheses 
+
+Interpretation of stuff
+
+The party situation:
+Two ways to deal with elite strength: give the new party, then don't have e-government because of less elite strength. If long-term party, maybe less elite strength because relic of previous elite strength. Could be noise that makes effects different with long-standing party. Sometimes with longstanding party could be one of two outcomes: either more elite power, or elites are "dealt with" so could be pulling in different directions in diferent contexts 
+
+The interaction between resource rents and coups:
+Elite threat veto power, but in the absense of elite threat, there are other reasons that may make them want to spend on e-government (modernization, international, etc)
+Like default of e-govenrment desirable, and only if there is an elite problem would there not be e-gov
+
+NEXT STEPS:
+1. Figure out the clustering standard error as an alternative to autocorrelation
+2. Decide about including gdp per capita
+3. Check models I like with interactions with e-participation
+
+
+
+Ignore things after this point
 ```{r regression 2}
 #Useless!!
 changes = lm(osi_change ~ prior_year_cpi_score_change + prior_year_gdp_per_capita_change + prior_year_cpi_score_change + prior_year_resource_rents_change + hci_change + tti_change + prior_year_big_protest_change + prior_10_years_coups_change, data = all_data)
 tidy(changes, conf.int = TRUE)
 ```
 
-```{r model just novel}
-#Here I am just using most theoretically linked / previously unused variables
-#This model is also invalid
-model_novel_osi = lm(osi_logit ~ prior_year_party_score + prior_10_years_coups + prior_year_resource_rents + prior_year_big_protest + tti + as.character(year), data = all_data)
-tidy(model_novel_osi, conf.int = TRUE)
-summary(model_novel_osi)
-```
-```{r}
-#Also invalid, same as above but for e-participation 
-model_novel_e_participation = lm(e_participation_index_logit ~ prior_year_party_score + prior_10_years_coups + prior_year_resource_rents + prior_year_big_protest + tti + as.character(year), data = all_data)
-tidy(model_novel_e_participation, conf.int = TRUE)
-summary(model_novel_e_participation)
-```
-
-
-```{r}
-#This is a starting point model from Steve in IQSS that is more valid because deals with panel data (not entirely sure what that means or what it does though under the hood?)
-
-# linear mixed effects model 
-
-library(lme4)
-options(scipen=20)
-
-form1 <- formula(osi_logit ~ prior_year_party_score + prior_10_years_coups+ prior_year_resource_rents + prior_year_big_protest + tti + factor(year) + (1 | country))
-
-mod1 <- lmer(form1, data = all_data)
-
-summary(mod1)
-```
 
 
 
-```{r}
-#Even more valid model by addressing autocorrelation 
-#Not sure how many years back to do the autocorrelation though
 
 
-mod2 <- lme(fixed = osi_logit ~ prior_year_party_score + prior_10_years_coups + prior_year_resource_rents + prior_year_big_protest + tti + factor(year),
-            random = ~ 1 | country,
-            #Figure out how many levels of autoregression to go back  - supposed to make some kind of graph
-            correlation = corARMA(form = ~ year | country, p=3, q=0),
-            data = all_data,
-            na.action = "na.exclude")
-
-summary(mod2)
-
-```
-
-
-```{r}
-#Same as above but with e-participation instead; basically the same
-
-mod2 <- lme(fixed = e_participation_index_logit ~ prior_year_party_score + prior_10_years_coups + prior_year_big_protest + prior_year_resource_rents + tti + factor(year),
-            random = ~ 1 | country,
-            #Figure out how many levels of autoregression to go back  - supposed to make some kind of graph
-            correlation = corARMA(form = ~ year | country, p=3, q=0),
-            data = all_data,
-            na.action = "na.exclude")
-
-summary(mod2)
-
-```
-
-
-
-```{r}
-#Adding some interactions
-
-#This seems to be the most interesting model so far in terms of seeing significant effects from my variables (I did check other interactions and nothing useful)
-
-mod2 <- lme(fixed = osi_logit ~ prior_year_party_score + prior_year_big_protest + prior_10_years_coups * prior_year_resource_rents + tti + hci+ factor(year),
-            random = ~ 1 | country,
-            #Figure out how many levels of autoregression to go back  - supposed to make some kind of graph
-            correlation = corARMA(form = ~ year | country, p=3, q=0),
-            data = all_data,
-            na.action = "na.exclude")
-
-summary(mod2)
-
-
-```
-```{r}
-#Ignore this
-numeric_only = modelling_data %>%
-  select(prior_year_cpi_score, prior_year_gdp_per_capita, prior_year_resource_rents, e_participation_index, osi, hci, tti, prior_year_num_protests)
-corr_df = data.frame(cor(numeric_only, use = "pairwise.complete.obs"))
-
-ols_step_forward_p(model_full)
-
-step_forward = lm(osi ~ tti + prior_year_cpi_score + prior_year_gdp_per_capita + prior_year_resource_rents + hci, data = modelling_data)
-tidy(step_forward)
-```
